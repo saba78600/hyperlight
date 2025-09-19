@@ -1,4 +1,4 @@
-#include "chibicc.h"
+#include "hyperlight.h"
 
 #define GP_MAX 6
 #define FP_MAX 8
@@ -1588,6 +1588,10 @@ void codegen(Obj *prog, FILE *out) {
   File **files = get_input_files();
   for (int i = 0; files[i]; i++)
     println("  .file %d \"%s\"", files[i]->file_no, files[i]->name);
+
+  /* Mark the assembly with a non-executable stack note to avoid
+     linker warnings about an implied executable stack. */
+  println("  .section .note.GNU-stack,\"\",@progbits");
 
   assign_lvar_offsets(prog);
   emit_data(prog);

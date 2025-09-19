@@ -5,6 +5,6 @@
 **/a.out
 /tmp*
 /thirdparty
-/chibicc
+/hyperlight
 /test/*.exe
 /stage2
