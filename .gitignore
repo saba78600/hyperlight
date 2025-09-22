@@ -5,7 +5,14 @@
 **/a.out
 /tmp*
 /thirdparty
-/hyperlight
 /test/*.exe
 /stage2
 rewrite/target/*
+*.tar.gz
+hyperlight*
+!*.c
+!*.h
+!*.rs
+!*.toml
+!*.lock
+!*.md

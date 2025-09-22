@@ -1,5 +1,9 @@
 CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
 
+# Release settings
+VERSION ?= 0.1.0
+CFLAGS_RELEASE=-std=c11 -O2 -fno-common -Wall -Wno-switch -s
+
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
@@ -10,6 +14,16 @@ TESTS=$(TEST_SRCS:.c=.exe)
 
 hyperlight: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+.PHONY: release
+release: hyperlight-release hyperlight-$(VERSION)-linux.tar.gz
+
+hyperlight-release: $(OBJS)
+	$(CC) $(CFLAGS_RELEASE) -o $@ $^ $(LDFLAGS)
+
+hyperlight-$(VERSION)-linux.tar.gz: hyperlight-release README.md LICENSE
+	@rm -f $@
+	tar -czf $@ hyperlight-release README.md LICENSE
 
 $(OBJS): hyperlight.h
 
