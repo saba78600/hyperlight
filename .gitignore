@@ -8,3 +8,4 @@
 /hyperlight
 /test/*.exe
 /stage2
+rewrite/target/*
