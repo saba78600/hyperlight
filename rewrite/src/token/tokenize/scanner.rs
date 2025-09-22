@@ -2,6 +2,7 @@ use crate::token::{File, Token, TokenKind};
 use crate::types;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::strings::intern;
 
 use super::ident;
 use super::number;
@@ -92,6 +93,9 @@ pub fn tokenize(file: Rc<RefCell<File>>) -> Option<Rc<RefCell<Token>>> {
             if keywords::is_keyword(text) {
                 tok.borrow_mut().kind = TokenKind::TK_KEYWORD;
             }
+            // intern identifier text (store in loc and keep str_lit for strings)
+            let ident_intern = intern(text);
+            tok.borrow_mut().loc = Some(ident_intern.as_ref().clone());
             if head.is_none() { head = Some(tok.clone()); } else { tail.as_ref().unwrap().borrow_mut().next = Some(tok.clone()); }
             tail = Some(tok);
             i += id_len;
@@ -150,7 +154,9 @@ pub fn tokenize(file: Rc<RefCell<File>>) -> Option<Rc<RefCell<Token>>> {
             i = new_i;
             if i < bs.len() && bs[i] == b'"' { i += 1; }
             let tok = new_token(&file, TokenKind::TK_STR, &s, start, i, line_no);
-            tok.borrow_mut().str_lit = Some(buf.clone());
+            // intern the string literal contents
+            let str_intern = intern(&buf);
+            tok.borrow_mut().str_lit = Some(str_intern.as_ref().clone());
             // set type to char array
             let arr = types::r#type::array_of(types::r#type::ty_char(), (buf.len() + 1) as i32);
             tok.borrow_mut().ty = Some(arr);

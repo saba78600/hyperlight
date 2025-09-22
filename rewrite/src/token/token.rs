@@ -30,6 +30,14 @@ pub struct Token {
     pub at_bol: bool,
     pub has_space: bool,
     pub origin: Option<Rc<RefCell<Token>>>,
+    // For the preprocessor: a linked list of macro names which hid this token
+    pub hideset: Option<Rc<RefCell<Hideset>>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Hideset {
+    pub next: Option<Rc<RefCell<Hideset>>>,
+    pub name: String,
 }
 
 impl Default for Token {
@@ -50,6 +58,7 @@ impl Default for Token {
             at_bol: false,
             has_space: false,
             origin: None,
+            hideset: None,
         }
     }
 }

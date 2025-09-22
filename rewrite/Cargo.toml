@@ -5,3 +5,4 @@ edition = "2024"
 description = "Hyperlight is a Rust rewrite of chibicc, a small C compiler written in C. It also aims to be a large integer/float and HPC language."
 
 [dependencies]
+chrono = "0.4"
