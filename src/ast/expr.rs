@@ -1,8 +1,8 @@
-use crate::token;
+// ...existing code...
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Number(token::NumberLit),
+    Number(crate::token::NumberLit),
     Ident(String),
     Bool(bool),
     Binary {
@@ -10,6 +10,7 @@ pub enum Expr {
         left: Box<Expr>,
         right: Box<Expr>,
     },
+    Call { callee: String, args: Vec<Expr> },
 }
 
 #[derive(Debug, Clone, PartialEq)]

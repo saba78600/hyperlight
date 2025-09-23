@@ -1,1 +1,11 @@
-/target
+# Rust
+target/
+
+# LLVM
+*.ll
+
+# Compiled Object files
+*.o
+
+# Compiled
+example

@@ -1,6 +1,8 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Let,
+    Fn,
+    Return,
     If,
     Else,
     While,
@@ -10,6 +12,7 @@ pub enum Token {
     False,
     Plus,
     Minus,
+    Arrow,
     Star,
     Slash,
     Mod,
@@ -27,6 +30,7 @@ pub enum Token {
     Comma,
     LParen,
     RParen,
+    String(String),
     EOF,
 }
 
@@ -41,6 +45,8 @@ impl std::fmt::Display for Token {
         use Token::*;
         match self {
             Let => write!(f, "Let"),
+            Fn => write!(f, "Fn"),
+            Return => write!(f, "Return"),
             If => write!(f, "If"),
             Else => write!(f, "Else"),
             While => write!(f, "While"),
@@ -53,6 +59,7 @@ impl std::fmt::Display for Token {
             False => write!(f, "False"),
             Plus => write!(f, "+"),
             Minus => write!(f, "-"),
+            Arrow => write!(f, "->"),
             Star => write!(f, "*"),
             Slash => write!(f, "/"),
             Mod => write!(f, "%"),
@@ -70,6 +77,7 @@ impl std::fmt::Display for Token {
             Comma => write!(f, ","),
             LParen => write!(f, "("),
             RParen => write!(f, ")"),
+            String(s) => write!(f, "String({})", s),
             EOF => write!(f, "<EOF>"),
         }
     }

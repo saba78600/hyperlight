@@ -6,6 +6,8 @@ impl Parser {
     pub fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
         match self.peek() {
             Token::Let => return self.parse_let(),
+            Token::Fn => return self.parse_fn(),
+            Token::Return => return self.parse_return(),
             Token::If => return self.parse_if(),
             Token::While => return self.parse_while(),
             Token::LBrace => return Ok(Stmt::Expr(crate::ast::Expr::Ident("<block>".into()))), // placeholder if needed
@@ -29,6 +31,35 @@ impl Parser {
             _ => {}
         }
         self.parse_expr_stmt()
+    }
+
+    fn parse_fn(&mut self) -> Result<Stmt, ParseError> {
+        self.bump(); // consume 'fn'
+        // expect identifier
+        let name = match self.bump() { Token::Ident(s) => s, t => return Err(ParseError::UnexpectedToken(t, self.pos)), };
+        // params
+        match self.bump() { Token::LParen => {}, t => return Err(ParseError::UnexpectedToken(t, self.pos)), }
+        let mut params = Vec::new();
+        if !matches!(self.peek(), Token::RParen) {
+            loop {
+                match self.bump() {
+                    Token::Ident(pn) => {
+                        let ptype = if matches!(self.peek(), Token::Colon) {
+                            self.bump(); // ':'
+                            Some(self.parse_type()?)
+                        } else { None };
+                        params.push((pn, ptype));
+                    }
+                    t => return Err(ParseError::UnexpectedToken(t, self.pos)),
+                }
+                if matches!(self.peek(), Token::Comma) { self.bump(); continue; }
+                break;
+            }
+        }
+        match self.bump() { Token::RParen => {}, t => return Err(ParseError::UnexpectedToken(t, self.pos)), }
+        // body
+        let body = self.parse_block()?;
+        Ok(Stmt::FnDef { name, params, body })
     }
 
     fn parse_let(&mut self) -> Result<Stmt, ParseError> {
@@ -88,6 +119,17 @@ impl Parser {
             stmts.push(self.parse_stmt()?);
         }
         match self.bump() { Token::RBrace => Ok(stmts), t => Err(ParseError::UnexpectedToken(t, self.pos)), }
+    }
+
+    fn parse_return(&mut self) -> Result<Stmt, ParseError> {
+        self.bump(); // consume 'return'
+        if matches!(self.peek(), Token::Semicolon) {
+            self.bump();
+            return Ok(Stmt::Return(None));
+        }
+        let expr = self.parse_expr()?;
+        if matches!(self.peek(), Token::Semicolon) { self.bump(); }
+        Ok(Stmt::Return(Some(expr)))
     }
 
     fn consume_equal(&mut self) -> Result<(), ParseError> {

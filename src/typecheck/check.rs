@@ -35,6 +35,10 @@ pub fn check(stmts: &[Stmt]) -> Result<(), TypeError> {
                 check(body)?;
             }
             Stmt::Expr(e) => { infer_type(e, &env)?; }
+            &Stmt::FnDef { .. } => { /* functions don't affect top-level type env for now */ }
+            Stmt::Return(opt) => {
+                if let Some(e) = opt { let _ = infer_type(e, &env)?; }
+            }
         }
     }
     Ok(())
@@ -48,6 +52,16 @@ fn infer_type(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
         },
         Expr::Bool(_) => Ok(Type::Bool),
         Expr::Ident(name) => env.get(name).cloned().ok_or(TypeError::UnknownIdentifier(name.clone())),
+        Expr::Call { callee, args } => {
+            // builtin `print` returns Void and accepts any single expression
+            if callee == "print" {
+                if args.len() != 1 { return Err(TypeError::Mismatch { expected: Type::Void, found: Type::Custom("argcount".into()) }); }
+                let _ = infer_type(&args[0], env)?;
+                Ok(Type::Void)
+            } else {
+                Err(TypeError::UnknownIdentifier(callee.clone()))
+            }
+        }
         Expr::Binary { op, left, right } => {
             let lt = infer_type(left, env)?;
             let rt = infer_type(right, env)?;
@@ -72,7 +86,7 @@ fn infer_type(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
                 BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => {
                     // comparisons require matching numeric types (int/uint/float) and return Bool
                     match (lt, rt) {
-                        (Type::Int, Type::Int) | (Type::UInt, Type::UInt) | (Type::Float, Type::Float) | (Type::Int, Type::Float) | (Type::Float, Type::Int) => Ok(Type::Bool),
+                        (Type::Float, Type::Float) => Ok(Type::Bool),
                         (a, b) => Err(TypeError::Mismatch { expected: a, found: b }),
                     }
                 }
@@ -83,10 +97,7 @@ fn infer_type(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
 
 fn is_assignable(src: &Type, dst: &Type) -> bool {
     match (src, dst) {
-        (Type::Int, Type::Int) => true,
-        (Type::UInt, Type::UInt) => true,
         (Type::Float, Type::Float) => true,
-        (Type::Int, Type::Float) | (Type::UInt, Type::Float) => true,
         (a, b) => a == b,
     }
 }

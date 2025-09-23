@@ -1,0 +1,6 @@
+let a: int64 = 1;
+let b: float64 = 2.5;
+a = a + 3;
+b = b + 1.5;
+print(a);
+print(b);

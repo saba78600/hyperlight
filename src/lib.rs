@@ -11,6 +11,8 @@ pub mod ast;
 pub mod parser;
 pub mod span;
 pub mod typecheck;
+pub mod codegen;
+pub mod syntax;
 
 pub use lexer::tokenize;
 pub use parser::*;

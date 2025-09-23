@@ -65,7 +65,7 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<Expr, ParseError> {
-        if matches!(self.peek(), Token::Minus) {
+            if matches!(self.peek(), Token::Minus) {
             self.bump();
             let expr = self.parse_primary()?;
             return Ok(Expr::Binary { op: BinOp::Sub, left: Box::new(Expr::Number(crate::token::NumberLit::Int(0))), right: Box::new(expr) });
@@ -78,7 +78,24 @@ impl Parser {
             Token::Number(n) => Ok(Expr::Number(n)),
             Token::True => Ok(Expr::Bool(true)),
             Token::False => Ok(Expr::Bool(false)),
-            Token::Ident(s) => Ok(Expr::Ident(s)),
+            Token::Ident(s) => {
+                // function call syntax: ident '(' args ')'
+                if matches!(self.peek(), Token::LParen) {
+                    self.bump(); // consume '('
+                    let mut args = Vec::new();
+                    if !matches!(self.peek(), Token::RParen) {
+                        loop {
+                            let e = self.parse_expr()?;
+                            args.push(e);
+                            if matches!(self.peek(), Token::Comma) { self.bump(); continue; }
+                            break;
+                        }
+                    }
+                    match self.bump() { Token::RParen => Ok(Expr::Call { callee: s, args }), t => Err(ParseError::UnexpectedToken(t, self.pos)), }
+                } else {
+                    Ok(Expr::Ident(s))
+                }
+            }
             Token::LParen => {
                 let e = self.parse_expr()?;
                 match self.bump() {

@@ -4,5 +4,6 @@ pub enum Type {
     UInt,
     Float,
     Bool,
+    Void,
     Custom(String),
 }
