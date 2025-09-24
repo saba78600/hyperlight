@@ -20,17 +20,9 @@ make buildp ARGS="example.hl"
 
 # Build and run the example
 make example
+# or manually run if you ran the buildp command
+./example
 ```
 
-If your LLVM libraries are installed in a non-standard location, set
-`LLVM_LIB` when invoking make, for example:
-
-```bash
-LLVM_LIB=/opt/llvm-18/lib make build
-```
-
-Contributing
-------------
-
-Please open issues or PRs. Keep changes small and focused. For changes that
-affect the code generator, ensure you run `make build` and `make example`.
+If your LLVM libraries are installed in a non-standard location, change the
+`LLVM_LIB` variable in the Makefile to point to the correct path.
