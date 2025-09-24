@@ -1,4 +1,4 @@
-use inkwell::values::PointerValue;
+use codegen_api::SimpleCodegenApi;
 use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
@@ -7,10 +7,9 @@ pub enum VarKind {
     Float,
 }
 
-pub struct BackendState<'ctx> {
-    pub ctx: &'ctx inkwell::context::Context,
-    pub module: inkwell::module::Module<'ctx>,
-    pub builder: inkwell::builder::Builder<'ctx>,
-    /// symbol table: local variable name -> (alloca pointer, kind)
-    pub locals: HashMap<String, (PointerValue<'ctx>, VarKind)>,
+pub struct BackendState {
+    /// The compiler-facing, Inkwell-encapsulating API instance (owns its Context).
+    pub api: SimpleCodegenApi<'static>,
+    /// Track variable kinds (int vs float) for coercions and allocations.
+    pub var_kinds: HashMap<String, VarKind>,
 }

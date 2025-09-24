@@ -10,7 +10,10 @@ pub enum Expr {
         left: Box<Expr>,
         right: Box<Expr>,
     },
-    Call { callee: String, args: Vec<Expr> },
+    Call {
+        callee: String,
+        args: Vec<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

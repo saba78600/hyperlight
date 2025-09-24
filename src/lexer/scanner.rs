@@ -1,5 +1,5 @@
-use crate::token::Token;
 use crate::span::Span;
+use crate::token::Token;
 
 #[derive(Debug)]
 pub enum LexError {
@@ -42,10 +42,16 @@ pub fn tokenize(input: &str) -> Result<Vec<SpannedToken>, LexError> {
                 let end = chars.peek().map(|(i, _)| *i).unwrap_or(start + num.len());
                 if num.contains('.') {
                     let n: f64 = num.parse().unwrap_or(0.0);
-                    tokens.push((Token::Number(crate::token::NumberLit::Float(n)), Span::new(start, end, line, start_col)));
+                    tokens.push((
+                        Token::Number(crate::token::NumberLit::Float(n)),
+                        Span::new(start, end, line, start_col),
+                    ));
                 } else {
                     let n: i128 = num.parse().unwrap_or(0);
-                    tokens.push((Token::Number(crate::token::NumberLit::Int(n)), Span::new(start, end, line, start_col)));
+                    tokens.push((
+                        Token::Number(crate::token::NumberLit::Int(n)),
+                        Span::new(start, end, line, start_col),
+                    ));
                 }
             }
             'a'..='z' | 'A'..='Z' | '_' => {
@@ -80,79 +86,138 @@ pub fn tokenize(input: &str) -> Result<Vec<SpannedToken>, LexError> {
                     tokens.push((Token::Ident(ident), Span::new(start, end, line, start_col)));
                 }
             }
-            '+' => { tokens.push((Token::Plus, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
+            '+' => {
+                tokens.push((Token::Plus, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
             '-' => {
                 // check for '->' arrow
                 if let Some((_, '>')) = chars.clone().nth(1) {
-                    tokens.push((Token::Arrow, Span::new(i, i+2, line, col)));
+                    tokens.push((Token::Arrow, Span::new(i, i + 2, line, col)));
                     chars.next(); // consume '-'
                     chars.next(); // consume '>'
                     col += 2;
                 } else {
-                    tokens.push((Token::Minus, Span::new(i, i+1, line, col)));
-                    chars.next(); col += 1;
+                    tokens.push((Token::Minus, Span::new(i, i + 1, line, col)));
+                    chars.next();
+                    col += 1;
                 }
             }
-            '*' => { tokens.push((Token::Star, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            '/' => { tokens.push((Token::Slash, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            '%' => { tokens.push((Token::Mod, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
+            '*' => {
+                tokens.push((Token::Star, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            '/' => {
+                tokens.push((Token::Slash, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            '%' => {
+                tokens.push((Token::Mod, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
             '=' => {
                 // could be '=='
-                chars.next(); col += 1;
+                chars.next();
+                col += 1;
                 if let Some((_, '=')) = chars.peek().cloned() {
-                    chars.next(); col += 1;
-                    tokens.push((Token::EqEq, Span::new(i, i+2, line, col-2)));
+                    chars.next();
+                    col += 1;
+                    tokens.push((Token::EqEq, Span::new(i, i + 2, line, col - 2)));
                 } else {
-                    tokens.push((Token::Equal, Span::new(i, i+1, line, col-1)));
+                    tokens.push((Token::Equal, Span::new(i, i + 1, line, col - 1)));
                 }
             }
             '!' => {
                 // expect '!='
-                chars.next(); col += 1;
+                chars.next();
+                col += 1;
                 if let Some((_, '=')) = chars.peek().cloned() {
-                    chars.next(); col += 1;
-                    tokens.push((Token::Neq, Span::new(i, i+2, line, col-2)));
+                    chars.next();
+                    col += 1;
+                    tokens.push((Token::Neq, Span::new(i, i + 2, line, col - 2)));
                 } else {
                     return Err(LexError::InvalidChar('!', i));
                 }
             }
-            ':' => { tokens.push((Token::Colon, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
+            ':' => {
+                tokens.push((Token::Colon, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
             '<' => {
-                chars.next(); col += 1;
+                chars.next();
+                col += 1;
                 if let Some((_, '=')) = chars.peek().cloned() {
-                    chars.next(); col += 1;
-                    tokens.push((Token::Leq, Span::new(i, i+2, line, col-2)));
+                    chars.next();
+                    col += 1;
+                    tokens.push((Token::Leq, Span::new(i, i + 2, line, col - 2)));
                 } else {
-                    tokens.push((Token::LessThan, Span::new(i, i+1, line, col-1)));
+                    tokens.push((Token::LessThan, Span::new(i, i + 1, line, col - 1)));
                 }
             }
             '>' => {
-                chars.next(); col += 1;
+                chars.next();
+                col += 1;
                 if let Some((_, '=')) = chars.peek().cloned() {
-                    chars.next(); col += 1;
-                    tokens.push((Token::Geq, Span::new(i, i+2, line, col-2)));
+                    chars.next();
+                    col += 1;
+                    tokens.push((Token::Geq, Span::new(i, i + 2, line, col - 2)));
                 } else {
-                    tokens.push((Token::GreaterThan, Span::new(i, i+1, line, col-1)));
+                    tokens.push((Token::GreaterThan, Span::new(i, i + 1, line, col - 1)));
                 }
             }
-            ';' => { tokens.push((Token::Semicolon, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            '{' => { tokens.push((Token::LBrace, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            '}' => { tokens.push((Token::RBrace, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            ',' => { tokens.push((Token::Comma, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            '(' => { tokens.push((Token::LParen, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
-            ')' => { tokens.push((Token::RParen, Span::new(i, i+1, line, col))); chars.next(); col += 1; }
+            ';' => {
+                tokens.push((Token::Semicolon, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            '{' => {
+                tokens.push((Token::LBrace, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            '}' => {
+                tokens.push((Token::RBrace, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            ',' => {
+                tokens.push((Token::Comma, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            '(' => {
+                tokens.push((Token::LParen, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
+            ')' => {
+                tokens.push((Token::RParen, Span::new(i, i + 1, line, col)));
+                chars.next();
+                col += 1;
+            }
             '"' => {
                 // string literal until closing '"'
-                chars.next(); col += 1;
+                chars.next();
+                col += 1;
                 let start = i + 1;
                 let mut s = String::new();
                 while let Some((_, c)) = chars.peek().cloned() {
-                    if c == '"' { chars.next(); col += 1; break; }
+                    if c == '"' {
+                        chars.next();
+                        col += 1;
+                        break;
+                    }
                     s.push(c);
-                    chars.next(); col += 1;
+                    chars.next();
+                    col += 1;
                 }
                 let end = chars.peek().map(|(i, _)| *i).unwrap_or(start + s.len());
-                tokens.push((Token::String(s), Span::new(start-1, end, line, col)));
+                tokens.push((Token::String(s), Span::new(start - 1, end, line, col)));
             }
             other => return Err(LexError::InvalidChar(other, i)),
         }

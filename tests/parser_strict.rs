@@ -1,4 +1,8 @@
-use hyperlight::{lexer::tokenize, parser::Parser, ast::{Stmt, Expr}};
+use hyperlight::{
+    ast::{Expr, Stmt},
+    lexer::tokenize,
+    parser::Parser,
+};
 
 #[test]
 fn parse_if_else_and_while() {
@@ -9,7 +13,11 @@ fn parse_if_else_and_while() {
     assert!(stmts.len() >= 2);
     // first should be If
     match &stmts[0] {
-        Stmt::If { cond, then_block, else_block } => {
+        Stmt::If {
+            cond,
+            then_block,
+            else_block,
+        } => {
             // cond should be a comparison
             match cond {
                 Expr::Binary { .. } => {}
@@ -28,5 +36,8 @@ fn parse_assignment_and_expression_stmt() {
     let toks = tokenize(src).unwrap();
     let stmts = Parser::new(toks).parse().unwrap();
     assert_eq!(stmts.len(), 3);
-    match &stmts[0] { Stmt::Assign { name, .. } => assert_eq!(name, "x"), other => panic!("expected assign, got: {:?}", other) }
+    match &stmts[0] {
+        Stmt::Assign { name, .. } => assert_eq!(name, "x"),
+        other => panic!("expected assign, got: {:?}", other),
+    }
 }

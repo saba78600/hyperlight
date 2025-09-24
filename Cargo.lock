@@ -19,6 +19,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "codegen_api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "inkwell",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -35,6 +43,7 @@ name = "hyperlight"
 version = "0.0.1"
 dependencies = [
  "anyhow",
+ "codegen_api",
  "inkwell",
 ]
 

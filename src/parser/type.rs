@@ -26,7 +26,7 @@ impl Parser {
                             }
                             Ok(crate::ast::Type::Custom(s))
                         }
-                        t => return Err(ParseError::UnexpectedToken(t, self.pos)),
+                        t => Err(ParseError::UnexpectedToken(t, self.pos)),
                     }
                 } else {
                     // bare identifier type e.g. int32

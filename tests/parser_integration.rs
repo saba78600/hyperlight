@@ -1,8 +1,8 @@
 #[test]
 fn parse_let_with_type() {
+    use hyperlight::ast::{Stmt, Type};
     use hyperlight::lexer::tokenize;
     use hyperlight::parser::Parser;
-    use hyperlight::ast::{Stmt, Type};
 
     let src = "let a: int32 = 2 + 3; a * 4";
     let toks = tokenize(src).unwrap();

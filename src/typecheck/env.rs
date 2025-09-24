@@ -10,9 +10,17 @@ pub struct TypeEnv {
     pub(crate) vars: std::collections::HashMap<String, Type>,
 }
 
+impl Default for TypeEnv {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TypeEnv {
     pub fn new() -> Self {
-        Self { vars: Default::default() }
+        Self {
+            vars: Default::default(),
+        }
     }
 
     pub fn insert(&mut self, name: String, ty: Type) {

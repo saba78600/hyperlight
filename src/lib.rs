@@ -5,14 +5,14 @@
 //! files under the `syntaxes/` directory so they can be edited without
 //! recompiling the parser code.
 
-pub mod token;
-pub mod lexer;
 pub mod ast;
+pub mod codegen;
+pub mod lexer;
 pub mod parser;
 pub mod span;
-pub mod typecheck;
-pub mod codegen;
 pub mod syntax;
+pub mod token;
+pub mod typecheck;
 
 pub use lexer::tokenize;
 pub use parser::*;

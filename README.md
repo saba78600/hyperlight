@@ -13,10 +13,10 @@ Makefile targets or the helper script:
 
 ```bash
 # Build the compiler
-make build
+make buildc
 
-# Build and a program
-make run ARGS="example.hl"
+# Build a program
+make buildp ARGS="example.hl"
 
 # Build and run the example
 make example

@@ -1,5 +1,4 @@
-pub mod backend;
 pub mod api;
+pub mod backend;
 
-pub use api::*;
 pub use backend::Backend;

@@ -1,95 +1,149 @@
-use anyhow::Result;
 use crate::ast::Stmt as S;
 use crate::codegen::backend::lower::expr::lower_expr;
 use crate::codegen::backend::types::BackendState;
-use inkwell::values::BasicValueEnum;
 use crate::codegen::backend::types::VarKind;
+use anyhow::Result;
 
-pub fn lower_stmt<'ctx>(state: &mut BackendState<'ctx>, stmt: &S) -> Result<()> {
+pub fn lower_stmt(state: &mut BackendState, stmt: &S) -> Result<()> {
     match stmt {
-        S::Let { name, ty: _ty, value } => {
+        S::Let {
+            name,
+            ty: _ty,
+            value,
+        } => {
             let val = lower_expr(state, value)?;
-            let function = state
-                .builder
-                .get_insert_block()
-                .unwrap()
-                .get_parent()
-                .unwrap();
-            let entry = function.get_first_basic_block().unwrap();
-            let tmp = state.ctx.create_builder();
-            if let Some(first) = entry.get_first_instruction() {
-                tmp.position_before(&first);
-            } else {
-                tmp.position_at_end(entry);
-            }
-            let (alloca, kind) = match val {
-                BasicValueEnum::IntValue(_) => (tmp.build_alloca(state.ctx.i64_type(), name)?, VarKind::Int),
-                BasicValueEnum::FloatValue(_) => (tmp.build_alloca(state.ctx.f64_type(), name)?, VarKind::Float),
+            // allocate in entry via API
+            match val.as_basic() {
+                inkwell::values::BasicValueEnum::IntValue(_) => {
+                    state.api.alloc_local_i64(name, Some(&val))?;
+                    state.var_kinds.insert(name.clone(), VarKind::Int);
+                }
+                inkwell::values::BasicValueEnum::FloatValue(_) => {
+                    state.api.alloc_local_f64(name, Some(&val))?;
+                    state.var_kinds.insert(name.clone(), VarKind::Float);
+                }
                 _ => return Err(anyhow::anyhow!("unsupported let initializer type")),
-            };
-            state.builder.build_store(alloca, val)?;
-            state.locals.insert(name.clone(), (alloca, kind));
+            }
             Ok(())
         }
         S::Assign { name, value } => {
             let val = lower_expr(state, value)?;
-            let (ptr, kind) = *state.locals.get(name).ok_or_else(|| anyhow::anyhow!("unknown local"))?;
-            match kind { VarKind::Int | VarKind::Float => { let _ = state.builder.build_store(ptr, val)?; } }
+            match state
+                .var_kinds
+                .get(name)
+                .ok_or_else(|| anyhow::anyhow!("unknown local"))?
+            {
+                VarKind::Int => {
+                    state.api.store_local_i64(name, &val)?;
+                }
+                VarKind::Float => {
+                    state.api.store_local_f64(name, &val)?;
+                }
+            }
             Ok(())
         }
-        S::If { cond, then_block, else_block } => {
-            let parent = state.builder.get_insert_block().unwrap().get_parent().unwrap();
-            let then_bb = state.ctx.append_basic_block(parent, "then");
-            let else_bb = state.ctx.append_basic_block(parent, "else");
-            let cont_bb = state.ctx.append_basic_block(parent, "ifcont");
+        S::If {
+            cond,
+            then_block,
+            else_block,
+        } => {
+            // create blocks
+            state.api.append_basic_block("then")?;
+            state.api.append_basic_block("else")?;
+            state.api.append_basic_block("ifcont")?;
             let condv = lower_expr(state, cond)?;
-            let cond_bool = match condv {
-                BasicValueEnum::IntValue(i) => { let zero = i.get_type().const_int(0, false); state.builder.build_int_compare(inkwell::IntPredicate::NE, i, zero, "tobool")? }
-                BasicValueEnum::FloatValue(fv) => { let zerof = fv.get_type().const_float(0.0); state.builder.build_float_compare(inkwell::FloatPredicate::ONE, fv, zerof, "tobool")? }
-                _ => return Err(anyhow::anyhow!("condition must be numeric")),
-            };
-            state.builder.build_conditional_branch(cond_bool, then_bb, else_bb)?;
-            state.builder.position_at_end(then_bb); for s in then_block { lower_stmt(state, s)?; } if state.builder.get_insert_block().unwrap().get_terminator().is_none() { state.builder.build_unconditional_branch(cont_bb)?; }
-            state.builder.position_at_end(else_bb); if let Some(eb) = else_block { for s in eb { lower_stmt(state, s)?; } } if state.builder.get_insert_block().unwrap().get_terminator().is_none() { state.builder.build_unconditional_branch(cont_bb)?; }
-            state.builder.position_at_end(cont_bb);
+            state.api.build_conditional_branch(&condv, "then", "else")?;
+            // then
+            state.api.position_at_end("then")?;
+            for s in then_block {
+                lower_stmt(state, s)?;
+            }
+            if !state.api.current_block_has_terminator() {
+                state.api.build_unconditional_branch("ifcont")?;
+            }
+            // else
+            state.api.position_at_end("else")?;
+            if let Some(eb) = else_block {
+                for s in eb {
+                    lower_stmt(state, s)?;
+                }
+            }
+            if !state.api.current_block_has_terminator() {
+                state.api.build_unconditional_branch("ifcont")?;
+            }
+            // cont
+            state.api.position_at_end("ifcont")?;
             Ok(())
         }
         S::FnDef { name, params, body } => {
-            let mut param_types = Vec::new();
-            for (_pname, pty) in params.iter() { match pty { Some(crate::ast::Type::Float) => param_types.push(state.ctx.f64_type().into()), _ => param_types.push(state.ctx.i64_type().into()), } }
-            let fn_type = state.ctx.i64_type().fn_type(&param_types, false);
-            let function = state.module.add_function(name, fn_type, None);
-            let bb = state.ctx.append_basic_block(function, "entry");
-            let saved_block = state.builder.get_insert_block(); state.builder.position_at_end(bb);
-            for (i, (pname, pty)) in params.iter().enumerate() {
-                let pv = function.get_nth_param(i as u32).unwrap();
-                let (alloca, kind) = match pty { Some(crate::ast::Type::Float) => (state.ctx.create_builder().build_alloca(state.ctx.f64_type(), pname)?, VarKind::Float), _ => (state.ctx.create_builder().build_alloca(state.ctx.i64_type(), pname)?, VarKind::Int), };
-                let _ = state.builder.build_store(alloca, pv);
-                state.locals.insert(pname.clone(), (alloca, kind));
+            let mut param_is_float = Vec::new();
+            for (_pname, pty) in params.iter() {
+                match pty {
+                    Some(crate::ast::Type::Float) => param_is_float.push(true),
+                    _ => param_is_float.push(false),
+                }
             }
-            for s in body { lower_stmt(state, s)?; }
-            if state.builder.get_insert_block().unwrap().get_terminator().is_none() { let z = state.ctx.i64_type().const_int(0, false); state.builder.build_return(Some(&z))?; }
-            if let Some(b) = saved_block { state.builder.position_at_end(b); }
+            state.api.add_function(name, &param_is_float)?;
+            state.api.set_current_function(name)?;
+            state.api.append_basic_block("entry")?;
+            state.api.position_at_end("entry")?;
+            // initialize params as locals
+            for (i, (pname, pty)) in params.iter().enumerate() {
+                // allocate and store param
+                let is_float = matches!(pty, Some(crate::ast::Type::Float));
+                if is_float {
+                    state.api.alloc_local_f64(pname, None)?;
+                    state.var_kinds.insert(pname.clone(), VarKind::Float);
+                } else {
+                    state.api.alloc_local_i64(pname, None)?;
+                    state.var_kinds.insert(pname.clone(), VarKind::Int);
+                }
+                // store nth parameter into the local via API helper
+                state.api.store_param_into_local(name, i as u32, pname)?;
+            }
+            for s in body {
+                lower_stmt(state, s)?;
+            }
+            if !state.api.current_block_has_terminator() {
+                let z = state.api.const_i64(0);
+                state.api.build_return_i64(&z)?;
+            }
             Ok(())
         }
         S::Return(opt) => {
-            if opt.is_none() { let z = state.ctx.i64_type().const_int(0, false); state.builder.build_return(Some(&z))?; return Ok(()); }
-            let expr = opt.as_ref().unwrap(); let v = lower_expr(state, expr)?;
-            match v { BasicValueEnum::IntValue(iv) => { let it = iv.get_type(); if it.get_bit_width() < 64 { let sext = state.builder.build_int_s_extend(iv, state.ctx.i64_type(), "ret_ext")?; state.builder.build_return(Some(&sext))?; } else { state.builder.build_return(Some(&iv))?; } Ok(()) }, BasicValueEnum::FloatValue(fv) => { let conv = state.builder.build_float_to_signed_int(fv, state.ctx.i64_type(), "fptosi")?; state.builder.build_return(Some(&conv))?; Ok(()) }, _ => Err(anyhow::anyhow!("unsupported return value type")), }
-        }
-        S::While { cond, body } => {
-            let parent = state.builder.get_insert_block().unwrap().get_parent().unwrap();
-            let loop_bb = state.ctx.append_basic_block(parent, "loop");
-            let body_bb = state.ctx.append_basic_block(parent, "loopbody");
-            let cont_bb = state.ctx.append_basic_block(parent, "loopcont");
-            state.builder.build_unconditional_branch(loop_bb)?; state.builder.position_at_end(loop_bb);
-            let condv = lower_expr(state, cond)?;
-            let cond_bool = match condv { BasicValueEnum::IntValue(i) => { let zero = i.get_type().const_int(0, false); state.builder.build_int_compare(inkwell::IntPredicate::NE, i, zero, "tobool")? } BasicValueEnum::FloatValue(fv) => { let zerof = fv.get_type().const_float(0.0); state.builder.build_float_compare(inkwell::FloatPredicate::ONE, fv, zerof, "tobool")? } _ => return Err(anyhow::anyhow!("condition must be numeric")), };
-            state.builder.build_conditional_branch(cond_bool, body_bb, cont_bb)?;
-            state.builder.position_at_end(body_bb); for s in body { lower_stmt(state, s)?; } if state.builder.get_insert_block().unwrap().get_terminator().is_none() { state.builder.build_unconditional_branch(loop_bb)?; }
-            state.builder.position_at_end(cont_bb);
+            if opt.is_none() {
+                let z = state.api.const_i64(0);
+                state.api.build_return(&z)?;
+                return Ok(());
+            }
+            let expr = opt.as_ref().unwrap();
+            let v = lower_expr(state, expr)?;
+            state.api.build_return(&v)?;
             Ok(())
         }
-        S::Expr(e) => { let _ = lower_expr(state, e)?; Ok(()) }
+        S::While { cond, body } => {
+            state.api.append_basic_block("loop")?;
+            state.api.append_basic_block("loopbody")?;
+            state.api.append_basic_block("loopcont")?;
+            state.api.build_unconditional_branch("loop")?;
+            state.api.position_at_end("loop")?;
+            let condv = lower_expr(state, cond)?;
+            state
+                .api
+                .build_conditional_branch(&condv, "loopbody", "loopcont")?;
+            state.api.position_at_end("loopbody")?;
+            for s in body {
+                lower_stmt(state, s)?;
+            }
+            if !state.api.current_block_has_terminator() {
+                state.api.build_unconditional_branch("loop")?;
+            }
+            state.api.position_at_end("loopcont")?;
+            Ok(())
+        }
+        S::Expr(e) => {
+            let _ = lower_expr(state, e)?;
+            Ok(())
+        }
     }
 }

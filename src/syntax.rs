@@ -33,9 +33,19 @@ pub struct Registry {
     pub builtins: HashMap<String, BuiltinSig>,
 }
 
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Registry {
     pub fn new() -> Self {
-        Self { keywords: HashMap::new(), types: HashSet::new(), builtins: HashMap::new() }
+        Self {
+            keywords: HashMap::new(),
+            types: HashSet::new(),
+            builtins: HashMap::new(),
+        }
     }
 }
 
@@ -80,7 +90,14 @@ pub fn register_defaults() {
     r.types.insert("float".into());
     r.types.insert("bool".into());
 
-    r.builtins.insert("print".into(), BuiltinSig { name: "print".into(), params: 1, returns_void: true });
+    r.builtins.insert(
+        "print".into(),
+        BuiltinSig {
+            name: "print".into(),
+            params: 1,
+            returns_void: true,
+        },
+    );
 
     register(r);
 }

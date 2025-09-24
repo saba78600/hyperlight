@@ -1,6 +1,10 @@
 #[test]
 fn parse_expression_ast_structure() {
-    use hyperlight::{lexer::tokenize, parser::Parser, ast::{Expr, BinOp, Stmt}};
+    use hyperlight::{
+        ast::{BinOp, Expr, Stmt},
+        lexer::tokenize,
+        parser::Parser,
+    };
 
     // 1 + x * 2  => 1 + (x * 2)
     let toks = tokenize("1 + x * 2").expect("tokenize");
@@ -8,7 +12,11 @@ fn parse_expression_ast_structure() {
     assert_eq!(stmts.len(), 1);
 
     match &stmts[0] {
-        Stmt::Expr(Expr::Binary { op: BinOp::Add, left, right }) => {
+        Stmt::Expr(Expr::Binary {
+            op: BinOp::Add,
+            left,
+            right,
+        }) => {
             // left should be the integer 1
             match &**left {
                 Expr::Number(hyperlight::token::NumberLit::Int(1)) => {}
@@ -17,13 +25,17 @@ fn parse_expression_ast_structure() {
 
             // right should be a multiplication expression x * 2
             match &**right {
-                Expr::Binary { op: BinOp::Mul, left: l, right: r } => {
+                Expr::Binary {
+                    op: BinOp::Mul,
+                    left: l,
+                    right: r,
+                } => {
                     match &**l {
-                        Expr::Ident(s) if s == "x" => {},
+                        Expr::Ident(s) if s == "x" => {}
                         other => panic!("expected ident 'x' on left of mul, got: {:?}", other),
                     }
                     match &**r {
-                        Expr::Number(hyperlight::token::NumberLit::Int(2)) => {},
+                        Expr::Number(hyperlight::token::NumberLit::Int(2)) => {}
                         other => panic!("expected int 2 on right of mul, got: {:?}", other),
                     }
                 }
@@ -34,10 +46,13 @@ fn parse_expression_ast_structure() {
     }
 }
 
-
 #[test]
 fn parse_parenthesis_precedence() {
-    use hyperlight::{lexer::tokenize, parser::Parser, ast::{Expr, BinOp, Stmt}};
+    use hyperlight::{
+        ast::{BinOp, Expr, Stmt},
+        lexer::tokenize,
+        parser::Parser,
+    };
 
     // (1 + 2) * 3 => top-level multiplication with left being addition
     let toks = tokenize("(1 + 2) * 3").expect("tokenize");
@@ -45,25 +60,45 @@ fn parse_parenthesis_precedence() {
     assert_eq!(stmts.len(), 1);
 
     match &stmts[0] {
-        Stmt::Expr(Expr::Binary { op: BinOp::Mul, left, right }) => {
+        Stmt::Expr(Expr::Binary {
+            op: BinOp::Mul,
+            left,
+            right,
+        }) => {
             // left is addition 1+2
             match &**left {
-                Expr::Binary { op: BinOp::Add, left: l, right: r } => {
-                    match &**l { Expr::Number(hyperlight::token::NumberLit::Int(1)) => {}, other => panic!("left add lhs wrong: {:?}", other) }
-                    match &**r { Expr::Number(hyperlight::token::NumberLit::Int(2)) => {}, other => panic!("left add rhs wrong: {:?}", other) }
+                Expr::Binary {
+                    op: BinOp::Add,
+                    left: l,
+                    right: r,
+                } => {
+                    match &**l {
+                        Expr::Number(hyperlight::token::NumberLit::Int(1)) => {}
+                        other => panic!("left add lhs wrong: {:?}", other),
+                    }
+                    match &**r {
+                        Expr::Number(hyperlight::token::NumberLit::Int(2)) => {}
+                        other => panic!("left add rhs wrong: {:?}", other),
+                    }
                 }
                 other => panic!("expected add on left of mul, got: {:?}", other),
             }
-            match &**right { Expr::Number(hyperlight::token::NumberLit::Int(3)) => {}, other => panic!("expected int 3 on right of mul, got: {:?}", other) }
+            match &**right {
+                Expr::Number(hyperlight::token::NumberLit::Int(3)) => {}
+                other => panic!("expected int 3 on right of mul, got: {:?}", other),
+            }
         }
         other => panic!("expected top-level mul expression, got: {:?}", other),
     }
 }
 
-
 #[test]
 fn parse_let_with_and_without_type() {
-    use hyperlight::{lexer::tokenize, parser::Parser, ast::{Type, Stmt}};
+    use hyperlight::{
+        ast::{Stmt, Type},
+        lexer::tokenize,
+        parser::Parser,
+    };
 
     // let with explicit type and without
     let src = "let a: int32 = 2 + 3; let b = a * 4;";

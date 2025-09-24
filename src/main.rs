@@ -1,6 +1,6 @@
 use std::env;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 fn main() {
     // initialize syntax/keywords/types/builtins registry
@@ -17,7 +17,10 @@ fn main() {
 
     let src = match fs::read_to_string(&input) {
         Ok(s) => s,
-        Err(e) => { eprintln!("failed to read {}: {}", input.display(), e); std::process::exit(2); }
+        Err(e) => {
+            eprintln!("failed to read {}: {}", input.display(), e);
+            std::process::exit(2);
+        }
     };
 
     // Lex + parse
@@ -30,17 +33,31 @@ fn main() {
                         Ok(_) => {
                             // compile and link native executable next to input (no extension)
                             let out = input.with_extension("");
-                            match hyperlight::codegen::api::compile_and_link_executable(&stmts, &out) {
+                            match hyperlight::codegen::api::compile_and_link_executable(
+                                &stmts, &out,
+                            ) {
                                 Ok(()) => println!("wrote executable to {}", out.display()),
-                                Err(e) => { eprintln!("codegen error: {}", e); std::process::exit(1); }
+                                Err(e) => {
+                                    eprintln!("codegen error: {}", e);
+                                    std::process::exit(1);
+                                }
                             }
                         }
-                        Err(e) => { eprintln!("typecheck error: {:?}", e); std::process::exit(1); }
+                        Err(e) => {
+                            eprintln!("typecheck error: {:?}", e);
+                            std::process::exit(1);
+                        }
                     }
                 }
-                Err(e) => { eprintln!("parse error: {:?}", e); std::process::exit(1); }
+                Err(e) => {
+                    eprintln!("parse error: {:?}", e);
+                    std::process::exit(1);
+                }
             }
         }
-        Err(e) => { eprintln!("lex error: {:?}", e); std::process::exit(1); }
+        Err(e) => {
+            eprintln!("lex error: {:?}", e);
+            std::process::exit(1);
+        }
     }
 }

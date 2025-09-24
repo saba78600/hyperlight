@@ -4,48 +4,38 @@ use anyhow::Result;
 use std::collections::HashMap;
 use std::path::Path;
 
-pub mod stmt;
 pub mod expr;
+pub mod stmt;
 
-pub use stmt::lower_stmt;
 pub use expr::lower_expr;
+pub use stmt::lower_stmt;
 
-pub struct Backend<'ctx> {
-    pub state: BackendState<'ctx>,
+pub struct Backend {
+    pub state: BackendState,
 }
 
-impl<'ctx> Backend<'ctx> {
-    pub fn new(ctx: &'ctx inkwell::context::Context, name: &str) -> Self {
-        let module = ctx.create_module(name);
-        let builder = ctx.create_builder();
+impl Backend {
+    pub fn new(name: &str) -> Self {
+        let api = codegen_api::SimpleCodegenApi::new(name);
         let state = BackendState {
-            ctx,
-            module,
-            builder,
-            locals: HashMap::new(),
+            api,
+            var_kinds: HashMap::new(),
         };
         Self { state }
     }
 
     pub fn compile_to_ir(&mut self, stmts: &[Stmt]) -> Result<String> {
-        // create main
-        let i64_type = self.state.ctx.i64_type();
-        let fn_type = i64_type.fn_type(&[], false);
-        let function = self.state.module.add_function("main", fn_type, None);
-        let bb = self.state.ctx.append_basic_block(function, "entry");
-        self.state.builder.position_at_end(bb);
-
+        self.state.api.create_entry();
         for s in stmts {
             self.codegen_stmt(s)?;
         }
-
-        let zero = i64_type.const_int(0, false);
-        self.state.builder.build_return(Some(&zero))?;
-        Ok(self.state.module.print_to_string().to_string())
+        let zero = self.state.api.const_i64(0);
+        let _ = self.state.api.build_return(&zero);
+        Ok(self.state.api.emit_ir())
     }
 
     pub fn emit_object(&self, out: &Path) -> Result<()> {
-        crate::codegen::backend::emitter::emit_object_for_module(&self.state, out)
+        self.state.api.emit_object_for_path(out)
     }
 
     fn codegen_stmt(&mut self, stmt: &Stmt) -> Result<()> {

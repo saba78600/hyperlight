@@ -1,5 +1,5 @@
-mod types;
+pub mod compile;
 pub mod lower;
-mod emitter;
+mod types;
 
 pub use lower::Backend;

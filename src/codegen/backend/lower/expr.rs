@@ -1,80 +1,63 @@
-use anyhow::Result;
-use crate::codegen::backend::types::BackendState;
 use crate::ast::Expr;
-use inkwell::values::BasicValueEnum;
+use crate::codegen::backend::types::BackendState;
+use anyhow::Result;
 
-pub fn lower_expr<'ctx>(state: &BackendState<'ctx>, expr: &Expr) -> Result<BasicValueEnum<'ctx>> {
+pub fn lower_expr(
+    state: &mut BackendState,
+    expr: &Expr,
+) -> Result<codegen_api::SimpleValue<'static>> {
     match expr {
         Expr::Number(n) => match n {
-            crate::token::NumberLit::Int(i) => Ok(state.ctx.i64_type().const_int(*i as u64, true).into()),
-            crate::token::NumberLit::Float(f) => Ok(state.ctx.f64_type().const_float(*f).into()),
+            crate::token::NumberLit::Int(i) => Ok(state.api.const_i64(*i as i64)),
+            crate::token::NumberLit::Float(f) => Ok(state.api.const_f64(*f)),
         },
-        Expr::Bool(b) => Ok(state.ctx.i64_type().const_int(if *b { 1 } else { 0 }, false).into()),
+        Expr::Bool(b) => Ok(state.api.const_i64(if *b { 1 } else { 0 })),
         Expr::Ident(s) => {
-            let (ptr, kind) = *state.locals.get(s).ok_or_else(|| anyhow::anyhow!("unknown ident"))?;
+            let kind = *state
+                .var_kinds
+                .get(s)
+                .ok_or_else(|| anyhow::anyhow!("unknown ident"))?;
             match kind {
-                crate::codegen::backend::types::VarKind::Int => {
-                    let loaded = state.builder.build_load(state.ctx.i64_type(), ptr, &format!("load_{}", s))?;
-                    Ok(loaded.into())
-                }
+                crate::codegen::backend::types::VarKind::Int => Ok(state.api.load_local_i64(s)?),
                 crate::codegen::backend::types::VarKind::Float => {
-                    let loaded = state.builder.build_load(state.ctx.f64_type(), ptr, &format!("load_{}", s))?;
-                    Ok(loaded.into())
+                    Ok(state.api.load_local_f64(s)?)
                 }
             }
         }
         Expr::Call { callee, args } => {
             if callee == "print" {
-                if args.len() != 1 { return Err(anyhow::anyhow!("print expects 1 arg")); }
-                let aval = lower_expr(state, &args[0])?;
-                let i32_t = state.ctx.i32_type();
-                let printf_ty = i32_t.fn_type(&[state.ctx.ptr_type(inkwell::AddressSpace::default()).into()], true);
-                let printf_fn = match state.module.get_function("printf") { Some(f) => f, None => state.module.add_function("printf", printf_ty, None), };
-                match aval {
-                    BasicValueEnum::IntValue(iv) => {
-                        let fmt_g = state.builder.build_global_string_ptr("%lld\n", "fmt_i64")?;
-                        let fmt_ptr = fmt_g.as_pointer_value();
-                        let _ = state.builder.build_call(printf_fn, &[fmt_ptr.into(), iv.into()], "call_printf");
-                        return Ok(state.ctx.i64_type().const_int(0, false).into());
-                    }
-                    BasicValueEnum::FloatValue(fv) => {
-                        let fmt_g = state.builder.build_global_string_ptr("%f\n", "fmt_f64")?;
-                        let fmt_ptr = fmt_g.as_pointer_value();
-                        let _ = state.builder.build_call(printf_fn, &[fmt_ptr.into(), fv.into()], "call_printf");
-                        return Ok(state.ctx.i64_type().const_int(0, false).into());
-                    }
-                    _ => return Err(anyhow::anyhow!("print: unsupported argument type")),
+                if args.len() != 1 {
+                    return Err(anyhow::anyhow!("print expects 1 arg"));
                 }
+                let aval = lower_expr(state, &args[0])?;
+                return state.api.call_printf(&aval);
             }
             let mut vals = Vec::new();
-            for a in args { vals.push(lower_expr(state, a)?); }
-            let function = match state.module.get_function(callee) { Some(f) => f, None => return Err(anyhow::anyhow!("unknown function: {}", callee)), };
-            use inkwell::values::BasicMetadataValueEnum;
-            let mut call_args: Vec<BasicMetadataValueEnum<'ctx>> = Vec::new();
-            for (i, pv) in function.get_param_iter().enumerate() {
-                let expected = pv.get_type();
-                let provided = vals.get(i).ok_or_else(|| anyhow::anyhow!("too few args for call"))?;
-                let arg_val: BasicMetadataValueEnum<'ctx> = match (provided, expected) {
-                    (&BasicValueEnum::IntValue(iv), t) if t.is_int_type() => iv.into(),
-                    (&BasicValueEnum::FloatValue(fv), t) if t.is_float_type() => fv.into(),
-                    (&BasicValueEnum::IntValue(iv), t) if t.is_float_type() => {
-                        let conv = state.builder.build_signed_int_to_float(iv, state.ctx.f64_type(), "sitofp")?;
-                        conv.into()
-                    }
-                    (&BasicValueEnum::FloatValue(_fv), t) if t.is_int_type() => {
-                        return Err(anyhow::anyhow!("cannot coerce float to int for call arg"));
-                    }
-                    _ => return Err(anyhow::anyhow!("unsupported arg coercion")),
-                };
-                call_args.push(arg_val);
+            for a in args {
+                vals.push(lower_expr(state, a)?);
             }
-            let call_site = state.builder.build_call(function, &call_args, "calltmp")?;
-            if let Some(rv) = call_site.try_as_basic_value().left() { Ok(rv) } else { Ok(state.ctx.i64_type().const_int(0, false).into()) }
+            let arg_refs: Vec<&codegen_api::SimpleValue<'static>> = vals.iter().collect();
+            let rv = state.api.build_call(callee, &arg_refs)?;
+            Ok(rv)
         }
         Expr::Binary { op, left, right } => {
             let l = lower_expr(state, left)?;
             let r = lower_expr(state, right)?;
-            let res = crate::codegen::api::CodegenApi::binop_with_builder(state.ctx, &state.builder, op.clone(), l, r)?;
+            // map AST BinOp to codegen_api::Op at the compiler level
+            let cop = match op {
+                crate::ast::BinOp::Add => codegen_api::Op::Add,
+                crate::ast::BinOp::Sub => codegen_api::Op::Sub,
+                crate::ast::BinOp::Mul => codegen_api::Op::Mul,
+                crate::ast::BinOp::Div => codegen_api::Op::Div,
+                crate::ast::BinOp::Mod => codegen_api::Op::Mod,
+                crate::ast::BinOp::Eq => codegen_api::Op::Eq,
+                crate::ast::BinOp::Ne => codegen_api::Op::Ne,
+                crate::ast::BinOp::Lt => codegen_api::Op::Lt,
+                crate::ast::BinOp::Le => codegen_api::Op::Le,
+                crate::ast::BinOp::Gt => codegen_api::Op::Gt,
+                crate::ast::BinOp::Ge => codegen_api::Op::Ge,
+            };
+            let res = state.api.build_binop(cop, &l, &r)?;
             Ok(res)
         }
     }

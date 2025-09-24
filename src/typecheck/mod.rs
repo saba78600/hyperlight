@@ -1,5 +1,5 @@
-pub mod env;
 pub mod check;
+pub mod env;
 
-pub use env::{TypeEnv, TypeError};
 pub use check::check;
+pub use env::{TypeEnv, TypeError};
